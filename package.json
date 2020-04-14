@@ -19,7 +19,6 @@
     "lint": "eslint .",
     "prerelease": "npm run lint",
     "release": "standard-version",
-    "postpublish": "git push origin master --follow-tags",
     "knex": "knex --knexfile=knexfile.js",
     "oracle:bash": "docker exec -it oracle-xe-11g-r2 /bin/bash",
     "bash": "docker exec -it jwt-knex /bin/bash"
