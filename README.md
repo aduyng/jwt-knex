@@ -12,7 +12,7 @@ This package is inspired by [jwt-redis](https://www.npmjs.com/package/jwt-redis)
 ## Installation
 
 ```bash
-npm install @aduyng/jwt-knex
+npm install jwt-knex
 ```
 
 ## Support
