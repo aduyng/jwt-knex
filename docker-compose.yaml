@@ -1,0 +1,39 @@
+version: "3.1"
+
+services:
+  jwt-knex:
+    build: .
+    image: aduyng/jwt-knex
+    restart: always
+    container_name: jwt-knex
+    volumes:
+      - .:/usr/app
+    environment:
+      PORT: 5080
+      NODE_ENV: development
+      DATABASE_HOST: oracle
+      DATABASE_PORT: 1521
+      DATABASE_USER: SAMPLE_DB_OWNER
+      DATABASE_PASSWORD: password
+      DATABASE_NAME: XE
+      DATABASE_URI: localhost:1521/XE
+      JWT_ORACLE_TABLE_NAME: JWT
+    ports:
+      - 5080:5080 # primary port
+      - 5081:5081 # debugger port
+  oracle:
+    build: ./oracle
+    image: aduyng/oracle-xe-11g-r2
+    restart: always
+    container_name: oracle-xe-11g-r2
+    volumes:
+      - oracle:/u01/app/oracle
+    environment:
+      - DATABASE_HOST=localhost
+      - DATABASE_PORT=1521
+      - DATABASE_NAME=XE
+      - ORACLE_ALLOW_REMOTE=true
+    ports:
+      - 1521:1521
+volumes:
+  oracle:
