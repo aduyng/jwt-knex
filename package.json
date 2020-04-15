@@ -1,6 +1,6 @@
 {
   "name": "jwt-knex",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "JWT with Knex as the storage",
   "license": "MIT",
   "repository": "https://github.com/aduyng/jwt-knex",
