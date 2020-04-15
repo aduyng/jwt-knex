@@ -44,7 +44,7 @@ class JWT {
    * @param {Object} payload the payload to sign
    * @param {String} secretOrPrivateKey the secret or private key (optional)
    * @param {Object} options additional options (optional)
-   * @returns {String} the signed token
+   * @returns {Promise<{token, jtk}>} the result with token included
    * @public
    */
   sign({ payload, secretOrPrivateKey, ...options }) {
@@ -71,11 +71,11 @@ class JWT {
             key,
             expiredAt: decoded.exp,
           })
-          .then(() => token);
+          .then(() => ({ ...decoded, token }));
       }
       return this.knex(this.tableName)
         .insert({ key })
-        .then(() => token);
+        .then(() => ({ ...decoded, token }));
     });
   }
 
