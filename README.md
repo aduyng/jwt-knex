@@ -21,28 +21,57 @@ This library is implemented as a part of other project and might contains bugs. 
 
 ## Quick start
 
-```javascript
-const knex = require("knex")(knexConfig);
-const JWT = require("jwt-knex");
+1. Create and run the migration script with knex to create the required table
 
-const secretOrPrivateKey = "secret";
-const jwt = new JwtKnex({
-  knex,
-  secretOrPrivateKey,
-});
+    ```properties
+    knex migrate:make add_jwt_tables
+    ```
 
-const payload = {
-  sub: "1234567890",
-  name: "John Doe",
-  admin: true,
-  jti: "jti",
-};
+    Enter the following code to create the table. Make sure you add `JWT_ORACLE_TABLE_NAME` to your 
+     environment variables:
+    
+    ```javascript
+    exports.up = (knex) =>
+      knex.schema.createTable(process.env.JWT_ORACLE_TABLE_NAME, (table) => {
+        table.string("key", 255).primary();
+        table.bigInteger("expiredAt").unsigned().defaultTo(Number.MAX_SAFE_INTEGER);
+      });
+    
+    exports.down = (knex) =>
+      knex.schema.dropTable(process.env.JWT_ORACLE_TABLE_NAME);
+   ``` 
+   
+   Run the migration script with knex.
+   
+   ```properties
+   knex migrate:latest
+   ```
 
-jwt
-  .sign({ payload, expiresIn: "10h" })
-  .then(token => jwt.verify({ token }))
-  .then(() => jwt.destroy({ jti: payload.jti }));
-```
+1. Added the jwt-knex package as in below:
+
+    ```javascript
+    const knex = require("knex")(knexConfig);
+    const JwtKnex = require("jwt-knex");
+    
+    const secretOrPrivateKey = "secret";
+    const jwt = new JwtKnex({
+      knex,
+      secretOrPrivateKey,
+      tableName: process.env.JWT_ORACLE_TABLE_NAME
+    });
+    
+    const payload = {
+      sub: "1234567890",
+      name: "John Doe",
+      admin: true,
+      jti: "jti",
+    };
+    
+    jwt
+      .sign({ payload, expiresIn: "10h" })
+      .then(token => jwt.verify({ token }))
+      .then(() => jwt.destroy({ jti: payload.jti }));
+    ```
 
 // TODO: documenting the APIs
 

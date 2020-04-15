@@ -61,7 +61,7 @@ class JWT {
     return this.knex(this.tableName).where("key", key).del();
   }
 
-  static decode({ token, ...options }) {
+  decode({ token, ...options }) {
     return JsonWebToken.decode(token, { ...this.options, ...options });
   }
 
