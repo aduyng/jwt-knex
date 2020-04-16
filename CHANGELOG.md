@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.15](https://github.com/aduyng/jwt-knex/compare/v0.0.13...v0.0.15) (2020-04-16)
+
+### [0.0.14](https://github.com/aduyng/jwt-knex/compare/v0.0.13...v0.0.14) (2020-04-16)
+
 ### [0.0.13](https://github.com/aduyng/jwt-knex/compare/v0.0.11...v0.0.13) (2020-04-16)
 
 ### [0.0.12](https://github.com/aduyng/jwt-knex/compare/v0.0.11...v0.0.12) (2020-04-16)
