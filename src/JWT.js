@@ -19,6 +19,8 @@ class JWT {
     keyPrefix = "jwt_label",
     secretOrPrivateKey,
     secretOrPublicKey,
+    log = console,
+    selfClean = true,
     ...options
   }) {
     this.knex = knex;
@@ -27,6 +29,8 @@ class JWT {
     this.secretOrPublicKey = secretOrPublicKey;
     this.keyPrefix = keyPrefix;
     this.options = options;
+    this.log = log;
+    this.selfClean = selfClean;
   }
 
   /**
@@ -40,6 +44,23 @@ class JWT {
   }
 
   /**
+   * perform self cleaning
+   * @returns {Promise<void>|Promise<boolean>}
+   */
+  clean() {
+    if (!this.selfClean) {
+      return Promise.resolve(true);
+    }
+    const expiredAt = Math.floor(Date.now() / 1000);
+    return this.knex(this.tableName)
+      .where("expiredAt", "<", expiredAt)
+      .del()
+      .then((deleted) =>
+        this.log.debug(`${__filename}$ ${deleted} entries have been removed.`)
+      );
+  }
+
+  /**
    * sign the token
    * @param {Object} payload the payload to sign
    * @param {String} secretOrPrivateKey the secret or private key (optional)
@@ -49,34 +70,44 @@ class JWT {
    */
   sign({ payload, secretOrPrivateKey, ...options }) {
     const jti = payload.jti || generateId(10);
+    const body = { ...payload, jti };
+    const secret = secretOrPrivateKey || this.secretOrPrivateKey;
+    const opts = { ...this.options, ...options };
+    this.log.debug(
+      `${__filename}$ about to sign payload: ${JSON.stringify(
+        body
+      )}, options: ${JSON.stringify(opts)}`
+    );
     return new Promise((resolve, reject) => {
-      JsonWebToken.sign(
-        { ...payload, jti },
-        secretOrPrivateKey || this.secretOrPrivateKey,
-        { ...this.options, ...options },
-        (error, token) => {
-          if (error) {
-            return reject(error);
-          }
-
-          return resolve(token);
+      JsonWebToken.sign(body, secret, opts, (error, token) => {
+        if (error) {
+          return reject(error);
         }
-      );
-    }).then((token) => {
-      const decoded = JsonWebToken.decode(token);
-      const key = this.getKey({ jti });
-      if (decoded.exp) {
+
+        return resolve(token);
+      });
+    })
+      .then((token) => {
+        const decoded = JsonWebToken.decode(token);
+        const key = this.getKey({ jti });
+
+        this.log.debug(`${__filename}$ token signed: ${token}, key: ${key}`);
+
+        if (decoded.exp) {
+          this.log.debug(`${__filename}$ token will expires at ${decoded.exp}`);
+          return this.knex(this.tableName)
+            .insert({
+              key,
+              expiredAt: decoded.exp,
+            })
+            .then(() => token);
+        }
+        this.log.debug(`${__filename}$ token won't be expired`);
         return this.knex(this.tableName)
-          .insert({
-            key,
-            expiredAt: decoded.exp,
-          })
+          .insert({ key })
           .then(() => token);
-      }
-      return this.knex(this.tableName)
-        .insert({ key })
-        .then(() => token);
-    });
+      })
+      .then((token) => this.clean().then(() => token));
   }
 
   /**
@@ -90,6 +121,7 @@ class JWT {
     return this.knex(this.tableName)
       .where("key", key)
       .del()
+      .then(() => this.clean())
       .then(() => true);
   }
 
@@ -114,32 +146,40 @@ class JWT {
    */
   verify({ token, secretOrPublicKey, ...options }) {
     return new Promise((resolve, reject) => {
-      return JsonWebToken.verify(
-        token,
-        secretOrPublicKey || this.secretOrPublicKey || this.secretOrPrivateKey,
-        { ...this.options, ...options },
-        (err, decoded) => {
-          if (err) {
-            return reject(err);
-          }
-          return resolve(decoded);
-        }
+      const secret =
+        secretOrPublicKey || this.secretOrPublicKey || this.secretOrPrivateKey;
+      const opts = { ...this.options, ...options };
+      this.log.debug(
+        `${__filename}$ verifying token ${token}, options: ${JSON.stringify(
+          opts
+        )}`
       );
+      return JsonWebToken.verify(token, secret, opts, (err, decoded) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(decoded);
+      });
     }).then((decoded) => {
       if (!decoded.jti) {
-        throw new TokenInvalidError();
+        this.log.debug(`${__filename}$ decoded token does not have jti`);
+        throw new TokenInvalidError("jti is missing from the decoded token");
       }
       const key = this.getKey({ jti: decoded.jti });
+      const expiredAt = Math.floor(Date.now() / 1000);
+      this.log.debug(
+        `${__filename}$ querying with key ${key}, expiredAt: ${expiredAt}`
+      );
       return this.knex(this.tableName)
         .where("key", key)
-        .where("expiredAt", ">=", Math.floor(Date.now() / 1000))
+        .where("expiredAt", ">=", expiredAt)
         .limit(1)
         .first()
         .then((result) => {
           if (!result) {
-            throw new TokenDestroyedError();
+            throw new TokenDestroyedError("token is not found.");
           }
-          return decoded;
+          return this.clean().then(() => decoded);
         });
     });
   }

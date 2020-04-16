@@ -132,7 +132,7 @@ describe("JWT", () => {
     };
     const signOptions = { expiresIn: "2d" };
     const token = await jwt.sign({ payload, ...signOptions });
-    const decoded = JWT.decode({ token });
+    const decoded = jwt.decode({ token });
     const decodeByOriginalJWT = JsonWebToken.decode(token);
     expect(decoded).toEqual(decodeByOriginalJWT);
   });
