@@ -46,6 +46,7 @@ class JWT {
   /**
    * perform self cleaning
    * @returns {Promise<void>|Promise<boolean>}
+   * @private
    */
   clean() {
     if (!this.selfClean) {
